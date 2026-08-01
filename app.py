@@ -354,7 +354,7 @@ if prompt := st.chat_input("Escribe tu consulta aquí..."):
         response = model.generate_content(full_prompt)
         respuesta_ia = response.text
     except Exception as e:
-        respuesta_ia = "Disculpa, ocurrió un error procesando tu solicitud con Gemini. Inténtalo de nuevo."
+        respuesta_ia = f"Error técnico exacto: {e}"
 
     mensajes_actuales.append({"role": "assistant", "content": respuesta_ia})
     with st.chat_message("assistant"):
