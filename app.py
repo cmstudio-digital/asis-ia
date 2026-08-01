@@ -65,23 +65,42 @@ st.markdown("""
 @st.cache_data(ttl=300)
 def cargar_base_datos_usuarios():
     """
-    Columnas de control añadidas:
-    - autoguardado (True/False): Permite recordar el correo en el navegador del usuario.
-    - congelado (True/False): Pausa o bloquea el acceso de inmediato por seguridad.
+    Conecta con Google Sheets usando gspread y las credenciales de st.secrets
     """
-    data = {
-        "correo": ["christian.30.medina@gmail.com", "mensual1@gmail.com", "prueba1@gmail.com"],
-        "rol": ["admin", "activo_mensual", "prueba"],
-        "fecha_activacion": ["2026-01-01 00:00:00", str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))],
-        "pack_adquirido": ["Admin Total", "Plan Mensual", "Prueba Gratuita"],
-        "autoguardado": [True, True, True],
-        "congelado": [False, False, False],
-        "Asistente_Negocios_Estrategia": [True, True, True],
-        "Asistente_Ideas": [True, True, False],
-        "Asistente_Marketing": [True, False, True],
-        "Asistente_Finanzas": [True, True, False]
-    }
-    return pd.DataFrame(data)
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+
+        # Definimos los permisos necesarios para Google Sheets
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+
+        # Cargamos las credenciales desde los secrets de Streamlit
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        
+        # Autorizamos el cliente gspread
+        gc = gspread.authorize(credentials)
+
+        # Abre tu hoja de cálculo por su nombre (Asegúrate que se llame así en tu Google Drive o usa la URL)
+        # Puedes cambiar "Asis-IA_DB" por el nombre exacto de tu archivo en Google Drive
+        sh = gc.open("Asis-IA_DB") 
+        
+        # Selecciona la primera pestaña de la hoja
+        worksheet = sh.get_worksheet(0)
+        
+        # Trae todos los registros a un DataFrame de Pandas
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+        
+        return df
+
+    except Exception as e:
+        st.error(f"Error al conectar con Google Sheets: {e}")
+        # Retorna un DataFrame vacío de respaldo si falla
+        return pd.DataFrame()
 
 df_usuarios = cargar_base_datos_usuarios()
 
