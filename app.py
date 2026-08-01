@@ -144,7 +144,8 @@ if usuario_encontrado.empty:
     st.stop()
 
 # Extraer reglas maestras de seguridad desde Google Sheets
-usuario_congelado = bool(usuario_encontrado.iloc[0].get('congelado', False))
+val_congelado = usuario_encontrado.iloc[0].get('congelado', False)
+usuario_congelado = True if str(val_congelado).strip().upper() == "TRUE" else False
 usuario_autoguardado = bool(usuario_encontrado.iloc[0].get('autoguardado', True))
 
 # Validar si la cuenta está congelada o pausada por seguridad
