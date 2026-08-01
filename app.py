@@ -188,7 +188,7 @@ if "correo_guardado" not in st.session_state:
     st.session_state.correo_guardado = ""
 
 if usuario_autoguardado:
-    # Extraer rol y vigencia de forma segura
+# Extraer rol y vigencia de forma segura
 user_rol = str(usuario_encontrado.iloc[0].get('rol', 'prueba')).strip().lower()
 fecha_act_str = str(usuario_encontrado.iloc[0].get('fecha_activacion', ''))
 
