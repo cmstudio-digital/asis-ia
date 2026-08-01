@@ -316,19 +316,21 @@ chats_disponibles_bot = list(st.session_state.chats_por_asistente[asistente_sele
 chat_activo = st.sidebar.selectbox("Selecciona una conversación:", chats_disponibles_bot)
 
 try:
-    # Intentamos forzar la lectura directa del secreto de Streamlit
+    from google import genai
+    
+    # Obtenemos la llave de los secrets o del entorno
     api_key = st.secrets.get("GOOGLE_API_KEY", "")
     if not api_key:
         api_key = os.getenv("GOOGLE_API_KEY", "")
+        
+    # Inicializamos el cliente oficial
+    client = genai.Client(api_key=api_key)
     
-    genai.configure(api_key=api_key)
-
-    # Corregimos el nombre del modelo y lo ponemos DENTRO del try
-    model = genai.GenerativeModel("gemini-3.5-flash")
+    # Definimos el modelo que siempre usas
+    MODELO_SELECCIONADO = "gemini-3.5-flash"
 
 except Exception as e:
-    st.error(f"Error configurando la API Key: {e}")
-    st.error(f"⚠️ Error de configuración de API Key: {e}")
+    st.error(f"Error de configuración con la librería de Gemini: {e}")
     st.stop()
 
 st.title(f"{asistente_seleccionado}")
