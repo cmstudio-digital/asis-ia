@@ -305,7 +305,7 @@ try:
         
     genai.configure(api_key=api_key)
     # Modelo Gemini Flash estándar y compatible con la librería oficial
-    MODELO_SELECCIONADO = "gemini-1.5-flash"
+    MODELO_SELECCIONADO = "gemini-3.5-flash"
 
 except Exception as e:
     st.error(f"Error de configuración con la librería de Gemini: {e}")
