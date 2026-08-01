@@ -351,7 +351,10 @@ if prompt := st.chat_input("Escribe tu consulta aquí..."):
     full_prompt = f"{system_prompt}\n\nHistorial reciente y consulta del usuario:\n{prompt}"
 
     try:
-        response = model.generate_content(full_prompt)
+        response = client.models.generate_content(
+       model="gemini-3.5-flash",
+       contents=full_prompt
+   )
         respuesta_ia = response.text
     except Exception as e:
         respuesta_ia = f"Error técnico exacto: {e}"
