@@ -188,16 +188,18 @@ if "correo_guardado" not in st.session_state:
     st.session_state.correo_guardado = ""
 
 if usuario_autoguardado:
-    st.session_state.correo_guardado = correo_ingresado_previo
-else:
-    st.session_state.correo_guardado = "" # Limpia la memoria si desactivaste el autoguardado remotamente
+    # Extraer rol y vigencia de forma segura
+user_rol = str(usuario_encontrado.iloc[0].get('rol', 'prueba')).strip().lower()
+fecha_act_str = str(usuario_encontrado.iloc[0].get('fecha_activacion', ''))
 
-user_email = correo_ingresado_previo
-st.session_state.correo_temp = user_email
-
-# Extraer rol y vigencia
-user_rol = usuario_encontrado.iloc[0]['rol'].strip().lower()
-fecha_act_str = str(usuario_encontrado.iloc[0]['fecha_activacion'])
+try:
+    if not fecha_act_str or fecha_act_str.lower() == 'nan':
+        fecha_act = datetime.now()
+    else:
+        clean_date = fecha_act_str.split()[0]
+        fecha_act = datetime.strptime(clean_date, "%Y-%m-%d")
+except Exception:
+    fecha_act = datetime.now()
 
 try:
     fecha_act = datetime.strptime(fecha_act_str, "%Y-%m-%d %H:%M:%S")
