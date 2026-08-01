@@ -86,7 +86,7 @@ def cargar_base_datos_usuarios():
 
         # Abre tu hoja de cálculo por su nombre (Asegúrate que se llame así en tu Google Drive o usa la URL)
         # Puedes cambiar "Asis-IA_DB" por el nombre exacto de tu archivo en Google Drive
-        sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1ozoGLOcJT60lBVXK5TqBaMURhLtk9Hjw43oMSP4vPI4/edit?usp=sharing") 
+        sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1ozoGLOcJT6OlBVXK5TqBAMUrhLTk9Hjw43oMSP4vPI4/edit?usp=sharing") 
         
         # Selecciona la primera pestaña de la hoja
         worksheet = sh.get_worksheet(0)
