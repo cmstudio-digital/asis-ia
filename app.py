@@ -134,11 +134,6 @@ usuario_congelado = True if str(val_congelado).strip().lower() in ["true", "1", 
 val_autoguardado = usuario_encontrado.iloc[0].get('autoguardado', True)
 usuario_autoguardado = True if str(val_autoguardado).strip().lower() in ["true", "1", "yes", "si", "verdadero", ""] else False
 
-# Validación de cuenta congelada (Desactivada temporalmente para evitar bloqueos)
-# if usuario_congelado:
-#     st.error("🔒 Tu cuenta se encuentra temporalmente congelada o pausada por seguridad. Comunícate con el administrador para restaurar tu acceso.")
-#     st.stop()
-
 if "correo_guardado" not in st.session_state:
     st.session_state.correo_guardado = ""
 
@@ -308,8 +303,9 @@ try:
     if not api_key:
         api_key = os.getenv("GOOGLE_API_KEY", "")
         
-    client = genai.Client(api_key=api_key)
-    MODELO_SELECCIONADO = "gemini-2.5-flash"
+    genai.configure(api_key=api_key)
+    # Modelo Gemini Flash estándar y compatible con la librería oficial
+    MODELO_SELECCIONADO = "gemini-1.5-flash"
 
 except Exception as e:
     st.error(f"Error de configuración con la librería de Gemini: {e}")
@@ -333,10 +329,8 @@ if prompt := st.chat_input("Escribe tu consulta aquí..."):
     full_prompt = f"{system_prompt}\n\nHistorial reciente y consulta del usuario:\n{prompt}"
 
     try:
-        response = client.models.generate_content(
-           model=MODELO_SELECCIONADO,
-           contents=full_prompt
-        )
+        model = genai.GenerativeModel(MODELO_SELECCIONADO)
+        response = model.generate_content(full_prompt)
         respuesta_ia = response.text
     except Exception as e:
         respuesta_ia = f"Error técnico exacto: {e}"
