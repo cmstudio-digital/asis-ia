@@ -143,22 +143,29 @@ if usuario_encontrado.empty:
     st.error("❌ Tu correo no se encuentra autorizado o registrado en el sistema.")
     st.stop()
 
-# Extraer reglas maestras de seguridad desde Google Sheets
-usuario_congelado = False
-usuario_autoguardado = bool(usuario_encontrado.iloc[0].get('autoguardado', True))
+# Extraer reglas maestras de seguridad desde Google Sheets de forma segura
+val_congelado = usuario_encontrado.iloc[0].get('congelado', False)
+usuario_congelado = True if str(val_congelado).strip().lower() in ["true", "1", "yes", "si", "verdadero"] else False
 
-# Validar si la cuenta está congelada o pausada por seguridad
+val_autoguardado = usuario_encontrado.iloc[0].get('autoguardado', True)
+usuario_autoguardado = True if str(val_autoguardado).strip().lower() in ["true", "1", "yes", "si", "verdadero", ""] else False
+
+# Validar si la cuenta está congelada o pausada por seguridad (Desactivado temporalmente)
 # if usuario_congelado:
-#     st.error("🔒 Tu cuenta se encuentra temporalmente congelada...")
+#     st.error("🔒 Tu cuenta se encuentra temporalmente congelada o pausada por seguridad. Comunícate con el administrador para restaurar tu acceso.")
 #     st.stop()
 
 # Gestionar memoria del navegador según la casilla de Google Sheets
+if "correo_guardado" not in st.session_state:
+    st.session_state.correo_guardado = ""
+
 if usuario_autoguardado:
     st.session_state.correo_guardado = correo_ingresado_previo
 else:
     st.session_state.correo_guardado = ""
 
 user_email = correo_ingresado_previo
+st.session_state.correo_temp = user_email
 
 # Buscar al usuario
 usuario_encontrado = df_usuarios[df_usuarios['correo'].str.lower() == correo_ingresado_previo.lower()]
