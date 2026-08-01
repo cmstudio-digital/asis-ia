@@ -149,9 +149,9 @@ usuario_congelado = True if str(val_congelado).strip().lower() in ["true", "1", 
 usuario_autoguardado = bool(usuario_encontrado.iloc[0].get('autoguardado', True))
 
 # Validar si la cuenta está congelada o pausada por seguridad
-if usuario_congelado:
-    st.error("🔒 Tu cuenta se encuentra temporalmente congelada o pausada por seguridad. Comunícate con el administrador para restaurar tu acceso.")
-    st.stop()
+# if usuario_congelado:
+#     st.error("🔒 Tu cuenta se encuentra temporalmente congelada...")
+#     st.stop()
 
 # Gestionar memoria del navegador según la casilla de Google Sheets
 if usuario_autoguardado:
