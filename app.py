@@ -64,34 +64,22 @@ st.markdown("""
 # ==========================================
 @st.cache_data(ttl=300)
 def cargar_base_datos_usuarios():
-    """
-    Conecta con Google Sheets usando gspread y las credenciales de st.secrets
-    """
     try:
         import gspread
         from google.oauth2.service_account import Credentials
 
-        # Definimos los permisos necesarios para Google Sheets
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
 
-        # Cargamos las credenciales desde los secrets de Streamlit
         creds_dict = dict(st.secrets["gcp_service_account"])
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         
-        # Autorizamos el cliente gspread
         gc = gspread.authorize(credentials)
-
-        # Abre tu hoja de cálculo por su nombre (Asegúrate que se llame así en tu Google Drive o usa la URL)
-        # Puedes cambiar "Asis-IA_DB" por el nombre exacto de tu archivo en Google Drive
         sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1ozoGLOcJT6OlBVXK5TqBAMUrhLTk9Hjw43oMSP4vPI4/edit?usp=sharing") 
-        
-        # Selecciona la primera pestaña de la hoja
         worksheet = sh.get_worksheet(0)
         
-        # Trae todos los registros a un DataFrame de Pandas
         data = worksheet.get_all_records()
         df = pd.DataFrame(data)
         
@@ -99,7 +87,6 @@ def cargar_base_datos_usuarios():
 
     except Exception as e:
         st.error(f"Error al conectar con Google Sheets: {e}")
-        # Retorna un DataFrame vacío de respaldo si falla
         return pd.DataFrame()
 
 df_usuarios = cargar_base_datos_usuarios()
@@ -115,12 +102,10 @@ if "correo_temp" not in st.session_state:
 if "sesion_iniciada" not in st.session_state:
     st.session_state.sesion_iniciada = False
 
-# Si la sesión NO está iniciada, mostramos el acceso
 if not st.session_state.sesion_iniciada:
     if "correo_guardado" in st.session_state and st.session_state.correo_guardado and not st.session_state.correo_temp:
         st.session_state.correo_temp = st.session_state.correo_guardado
 
-    # Usamos un formulario para que funcione tanto la tecla ENTER como el botón de abajo
     with st.sidebar.form(key='form_login'):
         correo_input = st.text_input("Ingresa tu correo electrónico registrado:", value=st.session_state.correo_temp).strip()
         submit_btn = st.form_submit_button(label="Entrar 🚀")
@@ -136,26 +121,24 @@ if not st.session_state.sesion_iniciada:
 
 correo_ingresado_previo = st.session_state.correo_temp
 
-# Buscar al usuario
 usuario_encontrado = df_usuarios[df_usuarios['correo'].str.lower() == correo_ingresado_previo.lower()]
 
 if usuario_encontrado.empty:
     st.error("❌ Tu correo no se encuentra autorizado o registrado en el sistema.")
     st.stop()
 
-# Extraer reglas maestras de seguridad desde Google Sheets de forma segura
+# Extracción segura de parámetros de Google Sheets
 val_congelado = usuario_encontrado.iloc[0].get('congelado', False)
 usuario_congelado = True if str(val_congelado).strip().lower() in ["true", "1", "yes", "si", "verdadero"] else False
 
 val_autoguardado = usuario_encontrado.iloc[0].get('autoguardado', True)
 usuario_autoguardado = True if str(val_autoguardado).strip().lower() in ["true", "1", "yes", "si", "verdadero", ""] else False
 
-# Validar si la cuenta está congelada o pausada por seguridad (Desactivado temporalmente)
+# Validación de cuenta congelada (Desactivada temporalmente para evitar bloqueos)
 # if usuario_congelado:
 #     st.error("🔒 Tu cuenta se encuentra temporalmente congelada o pausada por seguridad. Comunícate con el administrador para restaurar tu acceso.")
 #     st.stop()
 
-# Gestionar memoria del navegador según la casilla de Google Sheets
 if "correo_guardado" not in st.session_state:
     st.session_state.correo_guardado = ""
 
@@ -167,43 +150,21 @@ else:
 user_email = correo_ingresado_previo
 st.session_state.correo_temp = user_email
 
-# Buscar al usuario
-usuario_encontrado = df_usuarios[df_usuarios['correo'].str.lower() == correo_ingresado_previo.lower()]
-
-if usuario_encontrado.empty:
-    st.error("❌ Tu correo no se encuentra autorizado o registrado en el sistema.")
-    st.stop()
-
-# Extraer reglas maestras de seguridad desde Google Sheets
-usuario_congelado = bool(usuario_encontrado.iloc[0].get('congelado', False))
-usuario_autoguardado = bool(usuario_encontrado.iloc[0].get('autoguardado', True))
-
-# Validar si la cuenta está congelada o pausada por seguridad
-if usuario_congelado:
-    st.error("🔒 Tu cuenta se encuentra temporalmente congelada o pausada por seguridad. Comunícate con el administrador para restaurar tu acceso.")
-    st.stop()
-
-# Gestionar memoria del navegador según la casilla de Google Sheets
-if "correo_guardado" not in st.session_state:
-    st.session_state.correo_guardado = ""
-
-# Extraer rol y vigencia de forma segura
+# ==========================================
+# 4. EXTRACCIÓN ROBUSTA DE ROL Y FECHA
+# ==========================================
 user_rol = str(usuario_encontrado.iloc[0].get('rol', 'prueba')).strip().lower()
-fecha_act_str = str(usuario_encontrado.iloc[0].get('fecha_activacion', ''))
+fecha_act_raw = usuario_encontrado.iloc[0].get('fecha_activacion', '')
 
 try:
-    if not fecha_act_str or fecha_act_str.lower() == 'nan':
-        fecha_act = datetime.now()
+    fecha_act_str = str(fecha_act_raw).strip().split()[0]
+    partes = fecha_act_str.split('-')
+    if len(partes) == 3:
+        fecha_act = datetime(int(partes[0]), int(partes[1]), int(partes[2]))
     else:
-        clean_date = fecha_act_str.split()[0]
-        fecha_act = datetime.strptime(clean_date, "%Y-%m-%d")
+        fecha_act = datetime.now()
 except Exception:
     fecha_act = datetime.now()
-
-try:
-    fecha_act = datetime.strptime(fecha_act_str, "%Y-%m-%d %H:%M:%S")
-except:
-    fecha_act = datetime.strptime(fecha_act_str.split()[0], "%Y-%m-%d")
 
 tiempo_transcurrido = datetime.now() - fecha_act
 dias_transcurridos = tiempo_transcurrido.days
@@ -269,7 +230,7 @@ else:
     }
 
 # ==========================================
-# 4. BANNERS Y DISTINTIVOS EN SIDEBAR
+# 5. BANNERS Y DISTINTIVOS EN SIDEBAR
 # ==========================================
 st.sidebar.markdown("---")
 
@@ -288,7 +249,7 @@ elif user_rol == "pago_unico":
     st.sidebar.markdown('<div class="badge-activo-anual">⚡ Tu Cuenta: Acceso Vitalicio / Único</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 5. FILTRAR ASISTENTES
+# 6. FILTRAR ASISTENTES
 # ==========================================
 todos_los_asistentes = {
     "Asistente_Negocios_Estrategia": {
@@ -320,7 +281,7 @@ if not asistentes_disponibles:
     st.stop()
 
 # ==========================================
-# 6. GESTIÓN DE CHATS Y MOTOR DE IA
+# 7. GESTIÓN DE CHATS Y MOTOR DE IA (GEMINI)
 # ==========================================
 st.sidebar.markdown("---")
 st.sidebar.subheader("🤖 Tus Asistentes Autorizados")
@@ -343,18 +304,12 @@ chats_disponibles_bot = list(st.session_state.chats_por_asistente[asistente_sele
 chat_activo = st.sidebar.selectbox("Selecciona una conversación:", chats_disponibles_bot)
 
 try:
-    from google import genai
-    
-    # Obtenemos la llave de los secrets o del entorno
     api_key = st.secrets.get("GOOGLE_API_KEY", "")
     if not api_key:
         api_key = os.getenv("GOOGLE_API_KEY", "")
         
-    # Inicializamos el cliente oficial
     client = genai.Client(api_key=api_key)
-    
-    # Definimos el modelo que siempre usas
-    MODELO_SELECCIONADO = "gemini-3.5-flash"
+    MODELO_SELECCIONADO = "gemini-2.5-flash"
 
 except Exception as e:
     st.error(f"Error de configuración con la librería de Gemini: {e}")
@@ -379,9 +334,9 @@ if prompt := st.chat_input("Escribe tu consulta aquí..."):
 
     try:
         response = client.models.generate_content(
-       model="gemini-3.5-flash",
-       contents=full_prompt
-   )
+           model=MODELO_SELECCIONADO,
+           contents=full_prompt
+        )
         respuesta_ia = response.text
     except Exception as e:
         respuesta_ia = f"Error técnico exacto: {e}"
@@ -406,12 +361,10 @@ st.sidebar.download_button(
 st.sidebar.caption("💡 Tus chats se guardan por 30 días. Descarga tu documento antes de cambiar de dispositivo.")
 
 # ==========================================
-# 7. BOTÓN DE CERRAR SESIÓN
+# 8. BOTÓN DE CERRAR SESIÓN
 # ==========================================
 st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Cerrar Sesión"):
     st.session_state.correo_temp = ""
-    # NO borramos st.session_state.correo_guardado si el autoguardado está activo en Google Sheets
-    # Así, al cerrar sesión, el correo se queda grabado para la próxima vez en su dispositivo.
     st.session_state.sesion_iniciada = False
     st.rerun()
