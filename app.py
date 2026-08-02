@@ -60,7 +60,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. CARGA DE DATOS DESDE GOOGLE SHEETS
+# 2. CARGA DE DATOS DESDE GOOGLE SHEETS (CON CACHÉ Y SECRETS)
 # ==========================================
 @st.cache_data(ttl=300)
 def cargar_base_datos_usuarios():
@@ -77,7 +77,10 @@ def cargar_base_datos_usuarios():
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         
         gc = gspread.authorize(credentials)
-        sh = gc.open_by_url("https://docs.google.com/spreadsheets/d/1ozoGLOcJT6OlBVXK5TqBAMUrhLTk9Hjw43oMSP4vPI4/edit?usp=sharing") 
+        
+        # El enlace del Google Sheet ahora se lee de forma segura y privada desde st.secrets
+        sheet_url = st.secrets["sheet_url"]
+        sh = gc.open_by_url(sheet_url) 
         worksheet = sh.get_worksheet(0)
         
         data = worksheet.get_all_records()
@@ -128,9 +131,6 @@ if usuario_encontrado.empty:
     st.stop()
 
 # Extracción segura de parámetros de Google Sheets
-val_congelado = usuario_encontrado.iloc[0].get('congelado', False)
-usuario_congelado = True if str(val_congelado).strip().lower() in ["true", "1", "yes", "si", "verdadero"] else False
-
 val_autoguardado = usuario_encontrado.iloc[0].get('autoguardado', True)
 usuario_autoguardado = True if str(val_autoguardado).strip().lower() in ["true", "1", "yes", "si", "verdadero", ""] else False
 
@@ -144,6 +144,18 @@ else:
 
 user_email = correo_ingresado_previo
 st.session_state.correo_temp = user_email
+
+# Lectura del Pack Adquirido (Columna D) para mostrar en pantalla
+pack_adquirido_actual = str(usuario_encontrado.iloc[0].get('pack_adquirido', 'Ninguno')).strip()
+
+# Lectura de la Automatización (Columna E) para validar si el pack/automatización está activo
+val_automatizacion = usuario_encontrado.iloc[0].get('automatizacion', False)
+automatizacion_activa = True if str(val_automatizacion).strip().lower() in ["true", "1", "yes", "si", "verdadero"] else False
+
+# Si la automatización de la columna E es Falsa, detenemos el acceso
+if not automatizacion_activa and str(usuario_encontrado.iloc[0].get('rol', '')).strip().lower() != "admin":
+    st.error(f"⏳ Tu cuenta con el pack ({pack_adquirido_actual}) no tiene la automatización activa en este momento.")
+    st.stop()
 
 # ==========================================
 # 4. EXTRACCIÓN ROBUSTA DE ROL Y FECHA
@@ -225,23 +237,18 @@ else:
     }
 
 # ==========================================
-# 5. BANNERS Y DISTINTIVOS EN SIDEBAR
+# 5. BANNERS Y DISTINTIVOS EN SIDEBAR (MOSTRANDO EL PACK DE LA COLUMNA D)
 # ==========================================
 st.sidebar.markdown("---")
 
 if aviso_vencimiento_html:
     st.sidebar.markdown(aviso_vencimiento_html, unsafe_allow_html=True)
 
+# Mostramos dinámicamente el pack adquirido o el rol oficial
 if user_rol == "admin":
     st.sidebar.markdown('<div class="banner-admin">👑 Administrador Maestro</div>', unsafe_allow_html=True)
-elif user_rol == "prueba":
-    st.sidebar.markdown('<div class="banner-trial">⭐ Estás en tu Prueba Gratuita</div>', unsafe_allow_html=True)
-elif user_rol == "activo_mensual":
-    st.sidebar.markdown('<div class="badge-activo-mensual">✅ Tu Cuenta: Plan Mensual Activo</div>', unsafe_allow_html=True)
-elif user_rol == "activo_anual":
-    st.sidebar.markdown('<div class="badge-activo-anual">💎 Tu Cuenta: Plan Anual Activo</div>', unsafe_allow_html=True)
-elif user_rol == "pago_unico":
-    st.sidebar.markdown('<div class="badge-activo-anual">⚡ Tu Cuenta: Acceso Vitalicio / Único</div>', unsafe_allow_html=True)
+else:
+    st.sidebar.markdown(f'<div class="badge-activo-mensual">📦 Pack Activo: {pack_adquirido_actual}</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 6. FILTRAR ASISTENTES
@@ -304,7 +311,6 @@ try:
         api_key = os.getenv("GOOGLE_API_KEY", "")
         
     genai.configure(api_key=api_key)
-    # Modelo Gemini Flash estándar y compatible con la librería oficial
     MODELO_SELECCIONADO = "gemini-3.5-flash"
 
 except Exception as e:
