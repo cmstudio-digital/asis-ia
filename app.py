@@ -249,37 +249,53 @@ else:
     st.sidebar.markdown(f'<div class="badge-activo-mensual">📦 Pack Activo: {pack_adquirido_actual}</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. FILTRAR ASISTENTES
+# 6. FILTRAR ASISTENTES (LECTURA DINÁMICA DESDE LA COLUMNA G)
 # ==========================================
-todos_los_asistentes = {
-    "Asistente_Negocios_Estrategia": {
-        "nombre": "💼 Consultor de Negocios y Estratega Digital",
-        "prompt": "Eres un consultor experto en negocios y estratega digital. Ayudas a estructurar modelos de negocio y vender en internet."
-    },
-    "Asistente_Ideas": {
-        "nombre": "💡 Generación de Ideas de Negocio",
-        "prompt": "Eres un experto estratega de ideas y validación de emprendimientos desde cero."
-    },
-    "Asistente_Marketing": {
-        "nombre": "📈 Marketing y Estrategia Digital",
-        "prompt": "Eres un especialista en marketing digital, copywriting y pauta publicitaria."
-    },
-    "Asistente_Finanzas": {
-        "nombre": "💰 Finanzas y Control de Caja",
-        "prompt": "Eres un asesor financiero experto en optimización de presupuestos, costos y modelos de ingresos."
-    }
-}
+try:
+    worksheet_asistentes = sh.worksheet("asistentes")
+    data_asistentes = worksheet_asistentes.get_all_records()
+    df_asistentes = pd.DataFrame(data_asistentes)
+except Exception:
+    df_asistentes = pd.DataFrame()
+
+# Diccionario maestro de asistentes extraído de la pestaña 'asistentes'
+todos_los_asistentes = {}
+if not df_asistentes.empty:
+    for _, row in df_asistentes.iterrows():
+        nombre_real = str(row.get('nombre', '')).strip()
+        descripcion = str(row.get('descripcion', '')).strip()
+        system_prompt = str(row.get('system_prompt', '')).strip() # Oculto y seguro
+        if nombre_real:
+            todos_los_asistentes[nombre_real] = {
+                "descripcion": descripcion,
+                "prompt": system_prompt
+            }
 
 asistentes_disponibles = {}
-for key, info in todos_los_asistentes.items():
-    if user_rol == "admin" or usuario_permisos.get(key, False):
-        asistentes_disponibles[info["nombre"]] = info["prompt"]
+
+# Si es admin, tiene acceso a todo
+if user_rol == "admin":
+    for nombre, info in todos_los_asistentes.items():
+        asistentes_disponibles[nombre] = info["prompt"]
+else:
+    # Barrido dinámico desde la columna G en adelante (índice 6 de Pandas)
+    columnas_ia_sheet = df_usuarios.columns[6:]
+    
+    for col in columnas_ia_sheet:
+        if col.startswith("IA_"):
+            nombre_limpio_ia = col.replace("IA_", "").strip()
+            
+            # Verificar si el usuario tiene TRUE en esta columna en el Sheet
+            tiene_acceso = bool(usuario_encontrado.iloc[0].get(col, False))
+            
+            if tiene_acceso and nombre_limpio_ia in todos_los_asistentes:
+                asistentes_disponibles[nombre_limpio_ia] = todos_los_asistentes[nombre_limpio_ia]["prompt"]
 
 if not asistentes_disponibles:
     st.sidebar.markdown("---")
     st.warning("⚠️ No tienes ningún asistente activo asignado en este momento.")
     st.stop()
-
+    
 # ==========================================
 # 7. GESTIÓN DE CHATS Y MOTOR DE IA (GEMINI)
 # ==========================================
