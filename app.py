@@ -78,7 +78,6 @@ def cargar_base_datos_usuarios():
         
         gc = gspread.authorize(credentials)
         
-        # El enlace del Google Sheet ahora se lee de forma segura y privada desde st.secrets
         sheet_url = st.secrets["sheet_url"]
         sh = gc.open_by_url(sheet_url) 
         worksheet = sh.get_worksheet(0)
@@ -244,7 +243,6 @@ st.sidebar.markdown("---")
 if aviso_vencimiento_html:
     st.sidebar.markdown(aviso_vencimiento_html, unsafe_allow_html=True)
 
-# Mostramos dinámicamente el pack adquirido o el rol oficial
 if user_rol == "admin":
     st.sidebar.markdown('<div class="banner-admin">👑 Administrador Maestro</div>', unsafe_allow_html=True)
 else:
